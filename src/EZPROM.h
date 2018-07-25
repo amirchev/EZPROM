@@ -1,16 +1,19 @@
-#ifndef EZPROM
+#ifndef EZPROM_H
 #define EZPROM_H
 
 #include <Arduino.h>
 #include <EEPROM.h>
 
 class EZPROM {
+private:
+    bool overwriteDiffSize = false;
 public:
     //TODO: figure out way to save whether init, and check when starting
-    void reset() { 
-        EEPROM.put(EEPROM.length() - sizeof(uint8_t), (uint8_t) 0);
+
+    void reset() {
+        EEPROM.put(EEPROM.length() - sizeof (uint8_t), (uint8_t) 0);
     }
-    
+
     struct ObjectData {
         uint8_t id;
         uint16_t size;
@@ -39,7 +42,7 @@ public:
                 //overwrite object
                 ramToEEPROM(getAddress(objects, index), object, objects[index].size);
                 return true;
-            } else {
+            } else if (overwriteDiffSize) {
                 //calculate space totalSize
                 unsigned int totalSize = 0;
                 for (uint8_t i = 0; i < objectAmount; i++) { //add all objects
@@ -60,6 +63,8 @@ public:
                 } else {
                     return false;
                 }
+            } else {
+                return false;
             }
         }
 
@@ -106,10 +111,6 @@ public:
         }
     }
 
-    template<typename T> bool save(uint8_t id, T * const object, unsigned int elements) {
-        return save(id, *object, elements);
-    }
-    
     template<typename T> bool load(uint8_t id, T &object) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
@@ -176,6 +177,10 @@ public:
         }
     }
 
+    void setOverwriteIfSizeDifferent(bool b) {
+        overwriteDiffSize = b;
+    }
+
     ObjectData getObjectData(uint8_t id) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
@@ -191,7 +196,7 @@ public:
         badObject.size = 0;
         return badObject;
     }
-    
+
 private:
 
     void saveObjectData(ObjectData * objectData, uint8_t objectAmount) {
