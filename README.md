@@ -18,20 +18,23 @@ The last byte of EEPROM is used to store the amount of objects currently saved b
 ## Examples
 Before you use EZPROM with your program the first time, you must call `reset`. This will format EEPROM so that it can be used by EZPROM. This only needs to be done once. It can also be done every time you need to delete all objects currently managed by EZPROM. Here is an example:
 ```
-//the value of ids does not matter, as long as they are unique
-//ids must be of type uint8_t
-uint8_t pwd_id = 0,
-  port_id = 1,
-  msgs_id = 2;
-uint8_t pwd_size = 32,
-  msg_amt = 6,
-  msg_size = 32;
-
 void setup() {
   //only do once, if this is called every setup then
   //information will be lost between power cycles
   ezprom.reset();
 }
+```
+
+Here is the declaration of constants used in the two examples below:
+```
+//the value of ids does not matter, as long as they are unique
+//ids must be of type uint8_t
+const uint8_t pwd_id = 0,
+  port_id = 1,
+  msgs_id = 2;
+const uint8_t pwd_size = 32,
+  msg_amt = 6,
+  msg_size = 32;
 ```
 
 Use the `save` method to save objects to EZPROM:
