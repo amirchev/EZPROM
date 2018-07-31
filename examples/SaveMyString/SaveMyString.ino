@@ -1,7 +1,7 @@
 #include <EZPROM.h>
 
-char phrases = 0;
-const int phrase_size_max = 128;
+char strings = 0;
+const int string_size_max = 128;
 
 void setup() {
   //initialize Serial
@@ -13,37 +13,37 @@ void setup() {
 }
 
 void loop() {
-  //check if phrase is available in Serial
+  //check if string is available in Serial
   if (Serial.available() > 0) {
     bool saved = false;
     while (Serial.available() > 0) {
       //a string to hold the string
-      char str[phrase_size_max];
-      int len = Serial.readBytesUntil('\n', str, phrase_size_max - 1); //read the string
-      str[len] = '\0'; //null-terminate it
+      char buf[string_size_max];
+      int len = Serial.readBytesUntil('\n', buf, string_size_max - 1); //read the string
+      buf[len] = '\0'; //null-terminate it
 
       //save the string into ezprom with its own ID
-      saved = ezprom.save(phrases, *str, len + 1);
+      saved = ezprom.save(strings, *buf, len + 1);
       //increase string index if save was successful
       if (saved) {
-        phrases++;
+        strings++;
       }
     }
 
     //print all saved strings
-    for (char i = 0; i < phrases; i++) {
+    for (char i = 0; i < strings; i++) {
       //load the string
-      char phrase[phrase_size_max];
-      bool loaded = ezprom.load(i, *phrase);
+      char loadedString[string_size_max];
+      bool loaded = ezprom.load(i, *loadedString);
 
-      //print the phrase
+      //print the string
       if (loaded) {
-        Serial.print("Phrase ");
+        Serial.print("String ");
         Serial.print((int) i);
         Serial.print(": ");
-        Serial.println(phrase);
+        Serial.println(loadedString);
       } else {
-        Serial.print("Unable to load phrase ");
+        Serial.print("Unable to load string ");
         Serial.print((int) i);
         Serial.println(".");
       }
