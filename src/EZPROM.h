@@ -116,13 +116,11 @@ public:
             //calculate space totalSize
             unsigned int totalSize = 0;
             for (uint8_t i = 0; i < objectAmount; i++) { //add all objects
-                totalSize != objects[i].size;
+                totalSize += objects[i].size;
             }
             totalSize += sizeof (uint8_t) + sizeof (ObjectData) * objectAmount; //add ObjectData array & length number
-            totalSize += sizeof (T) * elements;
+            totalSize += sizeof (T) * elements + sizeof (ObjectData); //add new object with its ObjectData
             hasSpace = totalSize <= EEPROM.length();
-            Serial.print("Total size: ");
-            Serial.println(totalSize);
         }
 
         if (hasSpace) {
@@ -135,17 +133,6 @@ public:
             thisObjectData.id = id;
             thisObjectData.size = sizeof (T) * elements;
             updatedObjects[index] = thisObjectData;
-
-            for (uint8_t i = 0; i < objectAmount + 1; i++) {
-                Serial.print("Object ");
-                Serial.print(i);
-                Serial.print(" id ");
-                Serial.print(updatedObjects[i].id);
-                Serial.print(": size ");
-                Serial.print(updatedObjects[i].size);
-                Serial.print(" address ");
-                Serial.println(getAddress(updatedObjects, i));
-            }
             //save
             ramToEEPROM(getAddress(updatedObjects, index), src, updatedObjects[index].size);
             saveObjectData(updatedObjects, objectAmount + 1);

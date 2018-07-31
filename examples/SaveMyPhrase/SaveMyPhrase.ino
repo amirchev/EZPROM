@@ -1,9 +1,7 @@
 #include <EZPROM.h>
 
 char phrases = 0;
-unsigned long nextPrint;
-const unsigned long interval = 10 * 1000; //every 10 seconds
-const int phrase_size_max = 64;
+const int phrase_size_max = 128;
 
 void setup() {
   //initialize Serial
@@ -11,30 +9,24 @@ void setup() {
 
   //resets the EEPROM before use, all saved objects erased
   ezprom.reset();
-
-  //set the timer for prints
-  nextPrint = millis() + interval;
 }
 
 void loop() {
   if (Serial.available() > 0) {
-    char phrase[phrase_size_max];
-    int len;
-    len = Serial.readBytesUntil('\n', phrase, phrase_size_max);
-    phrase[len] = '\0';
+    bool saved = false;
+    while (Serial.available() > 0) {
+      char str[phrase_size_max];
+      int len;
+      len = Serial.readBytesUntil('\n', str, phrase_size_max - 1);
+      str[len] = '\0';
 
-    bool saved = ezprom.save(phrases, *phrase, len);
-    if (saved) {
-      Serial.println("Save successful.");
-      phrases++;
-    } else {
-      Serial.println("Unable to save!");
+      saved = ezprom.save(phrases, *str, len + 1);
+      if (saved) {
+        phrases++;
+      }
     }
-  }
 
-  if (millis() > nextPrint) {
-    nextPrint += interval;
-
+    //print all saved strings
     for (char i = 0; i < phrases; i++) {
       char phrase[phrase_size_max];
       bool loaded = ezprom.load(i, *phrase);
@@ -49,6 +41,12 @@ void loop() {
         Serial.print((int) i);
         Serial.println(".");
       }
+    }
+
+    if (saved) {
+      Serial.println("\nLast save was successful!\n");
+    } else {
+      Serial.println("\nUNABLE TO SAVE - OUT OF MEMORY!\n");
     }
   }
 }
