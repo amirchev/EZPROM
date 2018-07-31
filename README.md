@@ -42,12 +42,15 @@ void setPort(long port) {
 
 void setPwd(char * pwd) {
   //when saving an array, add an asterisk for every dimension
+  //also, the total amount of elements in the array must be passed forward
   ezprom.save(pwd_id, *pwd, pwd_size);
 }
 
 void saveMessages(char ** messages) {
   //since this is a two-dimensional array, you must use two
   //asterisks when saving it
+  //also, the total elements in a two-dimensional array is
+  //calculated by multiplying the width by the height of the array
   ezprom.save(msgs_id, **messages, msg_amt * msg_size);
 }
 ```
