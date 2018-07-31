@@ -79,15 +79,15 @@ void getMessages(char ** dest) {
 
 ## Documentation
 
-1. [reset](#void-reset)
-2. [ObjectData](#struct-objectdata)
-3. [save](#bool-saveuint8_t-id-t-const-src-uint16_t-elements--1)
-4. [load](#bool-loaduint8_t-id-t-dest)
-5. [remove](#void-removeuint8_t-id)
-6. [setOverwriteIfSizeDifferent](#void-setoverwriteifsizedifferentbool-b)
-7. [getObjectData](#objectdata-getobjectdatauint8_t-id)
-8. [getObjectAmount](#uint8_t-getobjectamount)
-9. [getAddress](#uint16_t-getaddressuint8_t-id)
+1. [void reset()](#void-reset)
+2. [struct ObjectData](#struct-objectdata)
+3. [bool save(uint8_t, T const &, uint16_t)](#bool-saveuint8_t-id-t-const-src-uint16_t-elements--1)
+4. [bool load(uint8_t, T &)](#bool-loaduint8_t-id-t-dest)
+5. [void remove(uint8_t)](#void-removeuint8_t-id)
+6. [void setOverwriteIfSizeDifferent(bool)](#void-setoverwriteifsizedifferentbool-b)
+7. [ObjectData getObjectData(uint8_t)](#objectdata-getobjectdatauint8_t-id)
+8. [uint8_t getObjectAmount()](#uint8_t-getobjectamount)
+9. [uint16_t getAddress(uint8_t)](#uint16_t-getaddressuint8_t-id)
 
 ### void reset()
 Clears all objects from EZPROM. Data is not actually modified except for the last byte which is set to `0`. The last byte of EEPROM stores the current amount of objects being managed by EZPROM.
