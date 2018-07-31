@@ -36,7 +36,7 @@ public:
     }
 
     /**
-     * Holds information regarding objects stored to EEPROM.
+     * Stores the id and size of objects stored into EEPROM.
      */
     struct ObjectData {
         uint8_t id;
@@ -46,15 +46,15 @@ public:
     /**
      * Stores an object and assigns it the given ID. Any object is stored as follows:
      * int i = 5;
-     * save(0, i);
+     * ezprom.save(id, i);
      * 
      * Any array can be saved as follows:
      * int i[5];
      * int j[5][5];
      * int k[5][5][5];
-     * save(0, *i, 5);
-     * save(1, **j, 5 * 5);
-     * save(1, ***k, 5 * 5 * 5);
+     * ezprom.save(i_id, *i, 5);
+     * ezprom.save(j_id, **j, 5 * 5);
+     * ezprom.save(k_id, ***k, 5 * 5 * 5);
      * 
      * @param id The ID assigned to the object which can be used to retrieve
      * the object later using #load
@@ -143,7 +143,17 @@ public:
     }
 
     /**
-     * Loads the object with the specified ID.
+     * Loads the object with the specified ID. Any object can be loaded as follows:
+     * int dest;
+     * ezprom.load(id, dest);
+     * 
+     * Any array can be loaded as follows:
+     * int i[5];
+     * int j[5][5];
+     * int k[5][5][5];
+     * ezprom.load(i_id, *i);
+     * ezprom.load(j_id, **j);
+     * ezprom.load(k_id, ***k);
      * 
      * @param id The ID of the object to be retrieved.
      * @param dest The object which will hold the retrieved object.
