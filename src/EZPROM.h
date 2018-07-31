@@ -4,22 +4,66 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
+/**
+ * EZPROM allows for easy manipulation of EEPROM memory. It allows for objects
+ * to be stored to and retrieved from EEPROM with an ID number instead of an address.
+ * Any type of object can be stored, including pointers and multidimensional arrays.
+ * 
+ * Each objects ID number and size are saved into EEPROM as well as the object.
+ * This adds an additional 3 bytes into EEPROM with each object saved. This means
+ * an array of objects will be less costly to save compared to individual objects. 
+ * 
+ * Each saved object can be overwritten in size. For example, if a char[32] is
+ * saved at some point and a char[64] is saved into the same ID at a later pointer,
+ * the size of the object will be updated and the char[64] object will be accommodated.
+ * This functionality requires that setOverwriteIfSizeDifferent is set to true.
+ * 
+ * The last byte of EEPROM is used to store the amount of objects currently saved
+ * by EZPROM.
+ */
 class EZPROM {
 private:
     bool overwriteDiffSize = false;
 public:
-    //TODO: figure out way to save whether init, and check when starting
 
+    /**
+     * Clears all objects from EZPROM. Data is not actually modified except for
+     * the last byte which is set to 0. The last byte of EEPROM stores the current
+     * amount of objects being managed by EZPROM.
+     */
     void reset() {
         EEPROM.put(EEPROM.length() - sizeof (uint8_t), (uint8_t) 0);
     }
 
+    /**
+     * Holds information regarding objects stored to EEPROM.
+     */
     struct ObjectData {
         uint8_t id;
         uint16_t size;
     };
 
-    template<typename T> bool save(uint8_t id, T const &object, unsigned int elements = 1) {
+    /**
+     * Stores an object and assigns it the given ID. Any object is stored as follows:
+     * int i = 5;
+     * save(0, i);
+     * 
+     * Any array can be saved as follows:
+     * int i[5];
+     * int j[5][5];
+     * int k[5][5][5];
+     * save(0, *i, 5);
+     * save(1, **j, 5 * 5);
+     * save(1, ***k, 5 * 5 * 5);
+     * 
+     * @param id The ID assigned to the object which can be used to retrieve
+     * the object later using #load
+     * @param src The object to be stored.
+     * @param elements The number of elements if the object is an array.
+     * @return True if the save was successful, false if there was no space on
+     * EEPROM or overwrite of same IDs is not allowed if the size is different.
+     */
+    template<typename T> bool save(uint8_t id, T const &src, unsigned int elements = 1) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -40,7 +84,7 @@ public:
         if (hasId) {
             if (objects[index].size == sizeof (T) * elements) {
                 //overwrite object
-                ramToEEPROM(getAddress(objects, index), object, objects[index].size);
+                ramToEEPROM(getAddress(objects, index), src, objects[index].size);
                 return true;
             } else if (overwriteDiffSize) {
                 //calculate space totalSize
@@ -103,7 +147,7 @@ public:
                 Serial.println(getAddress(updatedObjects, i));
             }
             //save
-            ramToEEPROM(getAddress(updatedObjects, index), object, updatedObjects[index].size);
+            ramToEEPROM(getAddress(updatedObjects, index), src, updatedObjects[index].size);
             saveObjectData(updatedObjects, objectAmount + 1);
             return true;
         } else {
@@ -111,7 +155,14 @@ public:
         }
     }
 
-    template<typename T> bool load(uint8_t id, T &object) {
+    /**
+     * Loads the object with the specified ID.
+     * 
+     * @param id The ID of the object to be retrieved.
+     * @param dest The object which will hold the retrieved object.
+     * @return True if the object was retrieved, false if the ID does not exist.
+     */
+    template<typename T> bool load(uint8_t id, T &dest) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -130,7 +181,7 @@ public:
 
         if (hasId) {
             unsigned int address = getAddress(objects, index);
-            uint8_t * ram = (uint8_t *) & object;
+            uint8_t * ram = (uint8_t *) & dest;
             for (unsigned int i = 0; i < objects[index].size; i++) {
                 ram[i] = EEPROM.read(address + i);
             }
@@ -139,6 +190,10 @@ public:
         return false;
     }
 
+    /**
+     * Removes the object with the specified ID.
+     * @param id The ID of the object to be removed.
+     */
     void remove(uint8_t id) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
@@ -177,10 +232,26 @@ public:
         }
     }
 
+    /**
+     * Specifies if overwriting the same with an object that is a different
+     * size than the original is okay. Although it can be convenient, frequently
+     * overwriting the same ID with objects of different sizes can increase the
+     * wear on EEPROM as objects behind the one whos size is changing must also
+     * be rewritten to EEPROM.
+     * 
+     * @param b Whether the previously saved object at a specific ID can be 
+     * overwritten by a new object with a different size.
+     */
     void setOverwriteIfSizeDifferent(bool b) {
         overwriteDiffSize = b;
     }
 
+    /**
+     * Retrieves the data of the object at a specified ID.
+     * 
+     * @param id The ID of the object whose data is to be retrieved.
+     * @return An #ObjectData object with the ID of the object and its size in EEPROM.
+     */
     ObjectData getObjectData(uint8_t id) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
@@ -241,5 +312,7 @@ private:
     }
 };
 
-#endif /* EZPROM */
+extern EZPROM ezprom;
+
+#endif /* EZPROM_H */
 
