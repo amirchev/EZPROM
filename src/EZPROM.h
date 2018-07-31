@@ -63,7 +63,7 @@ public:
      * @return True if the save was successful, false if there was no space on
      * EEPROM or overwrite of same IDs is not allowed if the size is different.
      */
-    template<typename T> bool save(uint8_t id, T const &src, unsigned int elements = 1) {
+    template<typename T> bool save(uint8_t id, T const &src, uint16_t elements = 1) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -88,7 +88,7 @@ public:
                 return true;
             } else if (overwriteDiffSize) {
                 //calculate space totalSize
-                unsigned int totalSize = 0;
+                uint16_t totalSize = 0;
                 for (uint8_t i = 0; i < objectAmount; i++) { //add all objects
                     if (i != index) {
                         totalSize += objects[i].size;
@@ -114,7 +114,7 @@ public:
 
         if (!hasSpace) {
             //calculate space totalSize
-            unsigned int totalSize = 0;
+            uint16_t totalSize = 0;
             for (uint8_t i = 0; i < objectAmount; i++) { //add all objects
                 totalSize += objects[i].size;
             }
@@ -167,9 +167,9 @@ public:
         }
 
         if (hasId) {
-            unsigned int address = getAddress(objects, index);
+            uint16_t address = getAddress(objects, index);
             uint8_t * ram = (uint8_t *) & dest;
-            for (unsigned int i = 0; i < objects[index].size; i++) {
+            for (uint16_t i = 0; i < objects[index].size; i++) {
                 ram[i] = EEPROM.read(address + i);
             }
             return true;
@@ -190,7 +190,6 @@ public:
         //check if id exists
         uint8_t index = 0;
         bool hasId = false;
-        bool hasSpace = false;
         for (uint8_t i = 0; i < objectAmount; i++) {
             if (objects[i].id == id) {
                 index = i;
@@ -209,9 +208,9 @@ public:
                 }
             }
             for (uint8_t i = index; i < objectAmount - 1; i++) {
-                unsigned int oldAddress = getAddress(objects, i + 1);
-                unsigned int newAddress = getAddress(updatedObjects, i);
-                for (unsigned int j = 0; j < updatedObjects[i].size; j++) {
+                uint16_t oldAddress = getAddress(objects, i + 1);
+                uint16_t newAddress = getAddress(updatedObjects, i);
+                for (uint16_t j = 0; j < updatedObjects[i].size; j++) {
                     EEPROM.update(newAddress + j, EEPROM.read(oldAddress + j));
                 }
             }
@@ -223,7 +222,7 @@ public:
      * Specifies if overwriting the same with an object that is a different
      * size than the original is okay. Although it can be convenient, frequently
      * overwriting the same ID with objects of different sizes can increase the
-     * wear on EEPROM as objects behind the one whos size is changing must also
+     * wear on EEPROM as objects behind the one whose size is changing must also
      * be rewritten to EEPROM.
      * 
      * @param b Whether the previously saved object at a specific ID can be 
@@ -254,46 +253,84 @@ public:
         badObject.size = 0;
         return badObject;
     }
-
-private:
-
-    void saveObjectData(ObjectData * objectData, uint8_t objectAmount) {
-        //calculate starting address
-        unsigned int startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
-        //save object data
+    
+    bool exists(uint8_t id) {
+        //load object data
+        uint8_t objectAmount = getObjectAmount();
+        ObjectData objects[objectAmount];
+        loadObjectData(objects, objectAmount);
+        
         for (uint8_t i = 0; i < objectAmount; i++) {
-            EEPROM.put(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
+            if (objects[i].id == id) {
+                return true;
+            }
         }
-        //save length of array
-        EEPROM.put(EEPROM.length() - sizeof (uint8_t), objectAmount);
+        return false;
     }
-
-    void loadObjectData(ObjectData * objectData, uint8_t objectAmount) {
-        //load all objects
-        unsigned int startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            EEPROM.get(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
-        }
-    }
-
+    
+    /**
+     * Retrieves the amount of objects currently managed by EZPROM.
+     * @return The amount of objects in EZPROM.
+     */
     uint8_t getObjectAmount() {
         //read amount from last address on EEPROM
         uint8_t objectAmt = 0;
         EEPROM.get(EEPROM.length() - sizeof (uint8_t), objectAmt);
         return objectAmt;
     }
+    
+    /**
+     * Retrieves the address in EEPROM of the object with the specified ID.
+     * @param id The ID of the object whose address is to be retrieved.
+     * @return The address of the object in EEPROM or the length of EEPROM if 
+     * an object with that ID does not exist.
+     */
+    uint16_t getAddress(uint8_t id) {
+        //load object data
+        uint8_t objectAmount = getObjectAmount();
+        ObjectData objects[objectAmount];
+        loadObjectData(objects, objectAmount);
+        
+        for (uint8_t i = 0; i < objectAmount; i++) {
+            if (objects[i].id == id) {
+                return getAddress(objects, i);
+            }
+        }
+        return EEPROM.length();
+    }
 
-    unsigned int getAddress(ObjectData * objects, uint8_t index) {
-        unsigned int address = 0;
+private:
+
+    void saveObjectData(ObjectData * objectData, uint8_t objectAmount) {
+        //calculate starting address
+        uint16_t startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
+        //save object data
+        for (uint8_t i = 0; i < objectAmount; i++) {
+            EEPROM.put(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
+        }
+        //save length of array
+        EEPROM.put(EEPROM.length() - sizeof (uint8_t), objectAmount);
+    }   
+
+    void loadObjectData(ObjectData * objectData, uint8_t objectAmount) {
+        //load all objects
+        uint16_t startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
+        for (uint8_t i = 0; i < objectAmount; i++) {
+            EEPROM.get(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
+        }
+    }
+
+    uint16_t getAddress(ObjectData * objects, uint8_t index) {
+        uint16_t address = 0;
         for (uint8_t i = 0; i < index; i++) {
             address += objects[i].size;
         }
         return address;
     }
 
-    template<typename T> void ramToEEPROM(unsigned int address, T const &object, unsigned int size) {
+    template<typename T> void ramToEEPROM(uint16_t address, T const &object, uint16_t size) {
         uint8_t * ram = (uint8_t *) & object;
-        for (unsigned int i = 0; i < size; i++) {
+        for (uint16_t i = 0; i < size; i++) {
             EEPROM.update(address + i, ram[i]);
         }
     }
