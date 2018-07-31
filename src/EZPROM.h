@@ -310,9 +310,7 @@ private:
             EEPROM.update(address + i, ram[i]);
         }
     }
-};
-
-extern EZPROM ezprom;
+} ezprom;
 
 #endif /* EZPROM_H */
 
