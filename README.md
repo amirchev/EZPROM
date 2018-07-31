@@ -71,7 +71,7 @@ void getPwd(char * dest) {
   ezprom.load(pwd_id, *dest);
 }
 
-void getMessages(char ** des) {
+void getMessages(char ** dest) {
   //when loading a two-dimensional array, use two asterisks
   ezprom.load(msgs_id, **dest);
 }
