@@ -233,7 +233,7 @@ public:
      * size than the original is okay. Although it can be convenient, frequently
      * overwriting the same ID with objects of different sizes can increase the
      * wear on EEPROM as objects behind the one whose size is changing must also
-     * be rewritten to EEPROM.
+     * be rewritten to EEPROM. This value is false by default.
      * 
      * @param b Whether the previously saved object at a specific ID can be 
      * overwritten by a new object with a different size.
