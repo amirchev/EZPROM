@@ -63,6 +63,7 @@ To load an object you simply call the `load` method:
 long getPort() {
   long port;
   ezprom.load(port_id, port);
+  return port;
 }
 
 void getPwd(char * dest) {  
