@@ -1,1 +1,3 @@
 ezprom	KEYWORD1
+save	KEYWORD2
+load	KEYWORD2
