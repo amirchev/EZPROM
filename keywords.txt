@@ -1,3 +1,6 @@
 ezprom	KEYWORD1
 save	KEYWORD2
 load	KEYWORD2
+serialize	KEYWORD2
+deserialize	KEYWORD2
+size	KEYWORD2

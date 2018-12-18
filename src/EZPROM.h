@@ -27,6 +27,83 @@ private:
 public:
 
     /**
+     * This abstract class can be extended to provide serialization functionality,
+     * allowing more control over how derived classes are saved into and retrieved
+     * from EEPROM. The deriving class must implement #serialize, #deserialize,
+     * and #size. To save to EEPROM, one can use EZPROM::saveSerial and to load,
+     * one can use EEPROM::loadSerial.
+     * 
+     * NOTE: The deriving class MUST have an empty default constructor which is used
+     * by 
+     */
+    class Serializable {
+    public:
+        /**
+         * Called by #saveSerial when saving a Serializable class to EEPROM.
+         * @param stream the byte stream used for saving the data; it's size is
+         * determined by the #size function
+         * @param index this is the index in the stream to which objects are being
+         * written; generally, the derived class should not be modifying it. It is
+         * passed to #putObject calls and calls to other #serialize methods
+         */
+        virtual void serialize(uint8_t * stream, uint16_t & index) = 0;
+        /**
+         * Called by #loadSerial when loading a Serializable class from EEPROM.
+         * @param stream the byte stream used for retrieving data; it's size was 
+         * determined on save, and will be the same
+         * @param index the index in the stream from which objects are being retrieved;
+         * generally,the derived class should not be modifying it. It is passed to
+         * #getObject and #deserialize where it is incremented appropriately.
+         */
+        virtual void deserialize(uint8_t * stream, uint16_t & index) = 0;
+        /**
+         * Called by #saveSerial to determine the size of the byte stream necessary
+         * to hold the contents of the Serializable class.
+         * @return the size of the Serializable class in bytes.
+         */
+        virtual uint16_t size() = 0;
+
+        /**
+         * Writes an object into the byte stream, incrementing the index appropriately.
+         * @param object the object to be written to the stream
+         * @param stream the stream which will hold the object
+         * @param index the index at which to begin writing to the stream, which
+         * is incremented equal to the size of the object that is written
+         */
+        template<typename T> void putObject(const T &src, uint8_t * stream, uint16_t &index) {
+            uint16_t size = sizeof (T);
+            uint8_t * ram = (uint8_t *) & src;
+            for (uint16_t i = 0; i < size; i++) {
+                stream[index++] = ram[i];
+            }
+        }
+
+        /**
+         * Reads an object from the byte stream, incrementing the index appropriately.
+         * @param stream the stream which holds the object
+         * @param index the index at which to begin reading from the stream, which
+         * is incremented equal to the size of the object that is read
+         * @return a copy the object retrieved from the stream
+         */
+        
+        
+        /**
+         * Reads an object from the byte stream, incrementing the index appropriately.
+         * @param dest the object to which the retrieved value will be written into
+         * @param stream the stream which holds the object
+         * @param index the index at which to begin reading from the stream, which
+         * is incremented equal to the size of the object that is read
+         */
+        template<typename T> void getObject(T & dest, uint8_t * stream, uint16_t &index) {
+            uint16_t size = sizeof (T);
+            uint8_t * ram = (uint8_t *) & dest;
+            for (uint16_t i = 0; i < size; i++) {
+                ram[i] = stream[index++];
+            }
+        }
+    };
+
+    /**
      * Clears all objects from EZPROM. Data is not actually modified except for
      * the last byte which is set to 0. The last byte of EEPROM stores the current
      * amount of objects being managed by EZPROM.
@@ -63,7 +140,7 @@ public:
      * @return True if the save was successful, false if there was no space on
      * EEPROM or overwrite of same IDs is not allowed if the size is different.
      */
-    template<typename T> bool save(uint8_t id, T const &src, uint16_t elements = 1) {
+    template<typename T> bool save(uint8_t id, const T &src, uint16_t elements = 1) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -187,6 +264,44 @@ public:
         return false;
     }
 
+    bool saveSerial(uint8_t id, const Serializable * src) {
+        int size = src->size();
+        uint8_t stream[size];
+        uint16_t index = 0;
+        src->serialize(stream, index);
+        return save(id, * stream, size);
+    }
+
+    bool loadSerial(uint8_t id, Serializable * dest) {
+        //load object data
+        uint8_t objectAmount = getObjectAmount();
+        ObjectData objects[objectAmount];
+        loadObjectData(objects, objectAmount);
+
+        //check if id exists
+        uint8_t index = 0;
+        bool hasId = false;
+        for (uint8_t i = 0; i < objectAmount; i++) {
+            if (objects[i].id == id) {
+                index = i;
+                hasId = true;
+                break;
+            }
+        }
+
+        if (hasId) {
+            uint8_t stream[objects[index].size];
+            uint16_t address = getAddress(objects, index);
+            for (uint16_t i = 0; i < objects[index].size; i++) {
+                stream[i] = EEPROM.read(address + i);
+            }
+            uint16_t serialIndex = 0;
+            dest->deserialize(stream, serialIndex);
+            return true;
+        }
+        return false;
+    }
+
     /**
      * Removes the object with the specified ID.
      * @param id The ID of the object to be removed.
@@ -263,13 +378,13 @@ public:
         badObject.size = 0;
         return badObject;
     }
-    
+
     bool exists(uint8_t id) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
         loadObjectData(objects, objectAmount);
-        
+
         for (uint8_t i = 0; i < objectAmount; i++) {
             if (objects[i].id == id) {
                 return true;
@@ -277,7 +392,7 @@ public:
         }
         return false;
     }
-    
+
     /**
      * Retrieves the amount of objects currently managed by EZPROM.
      * @return The amount of objects in EZPROM.
@@ -288,7 +403,7 @@ public:
         EEPROM.get(EEPROM.length() - sizeof (uint8_t), objectAmt);
         return objectAmt;
     }
-    
+
     /**
      * Retrieves the address in EEPROM of the object with the specified ID.
      * @param id The ID of the object whose address is to be retrieved.
@@ -300,7 +415,7 @@ public:
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
         loadObjectData(objects, objectAmount);
-        
+
         for (uint8_t i = 0; i < objectAmount; i++) {
             if (objects[i].id == id) {
                 return getAddress(objects, i);
@@ -320,7 +435,7 @@ private:
         }
         //save length of array
         EEPROM.put(EEPROM.length() - sizeof (uint8_t), objectAmount);
-    }   
+    }
 
     void loadObjectData(ObjectData * objectData, uint8_t objectAmount) {
         //load all objects
@@ -345,6 +460,5 @@ private:
         }
     }
 } ezprom;
-
 #endif /* EZPROM_H */
 
