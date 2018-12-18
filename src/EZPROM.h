@@ -32,9 +32,6 @@ public:
      * from EEPROM. The deriving class must implement #serialize, #deserialize,
      * and #size. To save to EEPROM, one can use EZPROM::saveSerial and to load,
      * one can use EEPROM::loadSerial.
-     * 
-     * NOTE: The deriving class MUST have an empty default constructor which is used
-     * by 
      */
     class Serializable {
     public:
