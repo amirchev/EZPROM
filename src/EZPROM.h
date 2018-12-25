@@ -3,6 +3,7 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
+#include <Logger.h>
 
 /**
  * EZPROM allows for easy manipulation of EEPROM memory. It allows for objects
@@ -77,15 +78,6 @@ public:
 
         /**
          * Reads an object from the byte stream, incrementing the index appropriately.
-         * @param stream the stream which holds the object
-         * @param index the index at which to begin reading from the stream, which
-         * is incremented equal to the size of the object that is read
-         * @return a copy the object retrieved from the stream
-         */
-        
-        
-        /**
-         * Reads an object from the byte stream, incrementing the index appropriately.
          * @param dest the object to which the retrieved value will be written into
          * @param stream the stream which holds the object
          * @param index the index at which to begin reading from the stream, which
@@ -105,9 +97,7 @@ public:
      * the last byte which is set to 0. The last byte of EEPROM stores the current
      * amount of objects being managed by EZPROM.
      */
-    void reset() {
-        EEPROM.put(EEPROM.length() - sizeof (uint8_t), (uint8_t) 0);
-    }
+    void reset();
 
     /**
      * Stores the id and size of objects stored into EEPROM.
@@ -137,7 +127,8 @@ public:
      * @return True if the save was successful, false if there was no space on
      * EEPROM or overwrite of same IDs is not allowed if the size is different.
      */
-    template<typename T> bool save(uint8_t id, const T &src, uint16_t elements = 1) {
+    template<typename T>
+    bool save(uint8_t id, const T& src, uint16_t elements = 1) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -233,7 +224,7 @@ public:
      * @param dest The object which will hold the retrieved object.
      * @return True if the object was retrieved, false if the ID does not exist.
      */
-    template<typename T> bool load(uint8_t id, T &dest) {
+    template<typename T> bool load(uint8_t id, T& dest) {
         //load object data
         uint8_t objectAmount = getObjectAmount();
         ObjectData objects[objectAmount];
@@ -261,84 +252,15 @@ public:
         return false;
     }
 
-    bool saveSerial(uint8_t id, const Serializable * src) {
-        int size = src->size();
-        uint8_t stream[size];
-        uint16_t index = 0;
-        src->serialize(stream, index);
-        return save(id, * stream, size);
-    }
+    bool saveSerial(uint8_t id, const Serializable * src);
 
-    bool loadSerial(uint8_t id, Serializable * dest) {
-        //load object data
-        uint8_t objectAmount = getObjectAmount();
-        ObjectData objects[objectAmount];
-        loadObjectData(objects, objectAmount);
-
-        //check if id exists
-        uint8_t index = 0;
-        bool hasId = false;
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            if (objects[i].id == id) {
-                index = i;
-                hasId = true;
-                break;
-            }
-        }
-
-        if (hasId) {
-            uint8_t stream[objects[index].size];
-            uint16_t address = getAddress(objects, index);
-            for (uint16_t i = 0; i < objects[index].size; i++) {
-                stream[i] = EEPROM.read(address + i);
-            }
-            uint16_t serialIndex = 0;
-            dest->deserialize(stream, serialIndex);
-            return true;
-        }
-        return false;
-    }
+    bool loadSerial(uint8_t id, Serializable * dest);
 
     /**
      * Removes the object with the specified ID.
      * @param id The ID of the object to be removed.
      */
-    void remove(uint8_t id) {
-        //load object data
-        uint8_t objectAmount = getObjectAmount();
-        ObjectData objects[objectAmount];
-        loadObjectData(objects, objectAmount);
-
-        //check if id exists
-        uint8_t index = 0;
-        bool hasId = false;
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            if (objects[i].id == id) {
-                index = i;
-                hasId = true;
-                break;
-            }
-        }
-
-        if (hasId) {
-            ObjectData updatedObjects[objectAmount - 1];
-            for (uint8_t i = 0; i < objectAmount; i++) {
-                if (i < index) {
-                    updatedObjects[i] = objects[i];
-                } else if (i > index) {
-                    updatedObjects[i - 1] = objects[i];
-                }
-            }
-            for (uint8_t i = index; i < objectAmount - 1; i++) {
-                uint16_t oldAddress = getAddress(objects, i + 1);
-                uint16_t newAddress = getAddress(updatedObjects, i);
-                for (uint16_t j = 0; j < updatedObjects[i].size; j++) {
-                    EEPROM.update(newAddress + j, EEPROM.read(oldAddress + j));
-                }
-            }
-            saveObjectData(updatedObjects, objectAmount - 1);
-        }
-    }
+    void remove(uint8_t id);
 
     /**
      * Specifies if overwriting the same with an object that is a different
@@ -350,9 +272,7 @@ public:
      * @param b Whether the previously saved object at a specific ID can be 
      * overwritten by a new object with a different size.
      */
-    void setOverwriteIfSizeDifferent(bool b) {
-        overwriteDiffSize = b;
-    }
+    void setOverwriteIfSizeDifferent(bool b);
 
     /**
      * Retrieves the data of the object at a specified ID.
@@ -360,46 +280,15 @@ public:
      * @param id The ID of the object whose data is to be retrieved.
      * @return An #ObjectData object with the ID of the object and its size in EEPROM.
      */
-    ObjectData getObjectData(uint8_t id) {
-        //load object data
-        uint8_t objectAmount = getObjectAmount();
-        ObjectData objects[objectAmount];
-        loadObjectData(objects, objectAmount);
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            if (objects[i].id == id) {
-                return objects[i];
-            }
-        }
-        ObjectData badObject;
-        badObject.id = id;
-        badObject.size = 0;
-        return badObject;
-    }
+    ObjectData getObjectData(uint8_t id);
 
-    bool exists(uint8_t id) {
-        //load object data
-        uint8_t objectAmount = getObjectAmount();
-        ObjectData objects[objectAmount];
-        loadObjectData(objects, objectAmount);
-
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            if (objects[i].id == id) {
-                return true;
-            }
-        }
-        return false;
-    }
+    bool exists(uint8_t id);
 
     /**
      * Retrieves the amount of objects currently managed by EZPROM.
      * @return The amount of objects in EZPROM.
      */
-    uint8_t getObjectAmount() {
-        //read amount from last address on EEPROM
-        uint8_t objectAmt = 0;
-        EEPROM.get(EEPROM.length() - sizeof (uint8_t), objectAmt);
-        return objectAmt;
-    }
+    uint8_t getObjectAmount();
 
     /**
      * Retrieves the address in EEPROM of the object with the specified ID.
@@ -407,55 +296,25 @@ public:
      * @return The address of the object in EEPROM or the length of EEPROM if 
      * an object with that ID does not exist.
      */
-    uint16_t getAddress(uint8_t id) {
-        //load object data
-        uint8_t objectAmount = getObjectAmount();
-        ObjectData objects[objectAmount];
-        loadObjectData(objects, objectAmount);
-
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            if (objects[i].id == id) {
-                return getAddress(objects, i);
-            }
-        }
-        return EEPROM.length();
-    }
+    uint16_t getAddress(uint8_t id);
 
 private:
 
-    void saveObjectData(ObjectData * objectData, uint8_t objectAmount) {
-        //calculate starting address
-        uint16_t startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
-        //save object data
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            EEPROM.put(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
-        }
-        //save length of array
-        EEPROM.put(EEPROM.length() - sizeof (uint8_t), objectAmount);
-    }
+    void saveObjectData(ObjectData * objectData, uint8_t objectAmount);
 
-    void loadObjectData(ObjectData * objectData, uint8_t objectAmount) {
-        //load all objects
-        uint16_t startingAddress = EEPROM.length() - (sizeof (uint8_t) + sizeof (ObjectData) * objectAmount);
-        for (uint8_t i = 0; i < objectAmount; i++) {
-            EEPROM.get(startingAddress + (i * sizeof (ObjectData)), objectData[i]);
-        }
-    }
+    void loadObjectData(ObjectData * objectData, uint8_t objectAmount);
 
-    uint16_t getAddress(ObjectData * objects, uint8_t index) {
-        uint16_t address = 0;
-        for (uint8_t i = 0; i < index; i++) {
-            address += objects[i].size;
-        }
-        return address;
-    }
+    uint16_t getAddress(ObjectData * objects, uint8_t index);
 
-    template<typename T> void ramToEEPROM(uint16_t address, T const &object, uint16_t size) {
+    template<typename T>
+    void ramToEEPROM(uint16_t address, const T& object, uint16_t size) {
         uint8_t * ram = (uint8_t *) & object;
         for (uint16_t i = 0; i < size; i++) {
             EEPROM.update(address + i, ram[i]);
         }
     }
-} ezprom;
+};
+
+extern EZPROM ezprom;
 #endif /* EZPROM_H */
 
