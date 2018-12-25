@@ -15,8 +15,6 @@ bool EZPROM::saveSerial(uint8_t id, const Serializable* src) {
 }
 
 bool EZPROM::loadSerial(uint8_t id, Serializable* dest) {
-    logger.setDebugging(true);
-    logger.println("loadSerial()");
     //load object data
     uint8_t objectAmount = getObjectAmount();
     ObjectData objects[objectAmount];
@@ -35,16 +33,12 @@ bool EZPROM::loadSerial(uint8_t id, Serializable* dest) {
 
     if (hasId) {
         uint8_t stream[objects[index].size];
-        logger.print("ObjectData::size = ");
-        logger.println(objects[index].size);
         uint16_t address = getAddress(objects, index);
         for (uint16_t i = 0; i < objects[index].size; i++) {
             stream[i] = EEPROM.read(address + i);
         }
         uint16_t serialIndex = 0;
         dest->deserialize(stream, serialIndex);
-        logger.print("serialIndex = ");
-        logger.println(serialIndex);
         return true;
     }
     return false;
