@@ -3,7 +3,6 @@
 
 #include <Arduino.h>
 #include <EEPROM.h>
-#include <Logger.h>
 
 /**
  * EZPROM allows for easy manipulation of EEPROM memory. It allows for objects

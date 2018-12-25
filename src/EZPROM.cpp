@@ -7,17 +7,10 @@ void EZPROM::reset() {
 }
 
 bool EZPROM::saveSerial(uint8_t id, const Serializable* src) {
-    logger.setDebugging(true);
-    logger.print("saveSerial() on object at address ");
-    logger.println((int) src);
     uint16_t size = src->size();
-    logger.print("Serializable::size() = ");
-    logger.println(size);
     uint8_t stream[size];
     uint16_t index = 0;
     src->serialize(stream, index);
-    logger.print("index = ");
-    logger.println(index);
     return save(id, * stream, size);
 }
 
