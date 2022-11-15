@@ -4,6 +4,11 @@
 #include <Arduino.h>
 #include <EEPROM.h>
 
+//the last ID in EZPROM belongs to the unique int, used for verifying that EEPROM
+//is setup, see #isValid and #reset(uint16_t)
+//note: DO NOT OVERWRITE THIS ID
+#define UNIQUE_INT_ID 255
+
 /**
  * EZPROM allows for easy manipulation of EEPROM memory. It allows for objects
  * to be stored to and retrieved from EEPROM with an ID number instead of an address.
@@ -23,7 +28,8 @@
  */
 class EZPROM {
 private:
-    bool overwriteDiffSize = false;
+	// see #setOverwriteIfSizeDifferent
+    bool overwriteDiffSize = true;
 public:
 
     /**
@@ -97,6 +103,34 @@ public:
      * amount of objects being managed by EZPROM.
      */
     void reset();
+
+    /**
+     * Functions like #reset, but checks #isValid first. If EEPROM is not valid, will call
+     * #reset and #setUniqueId. If EEPROM is valid, nothing happens.
+     * @param uniqueInt the unique integer id used to check whether EZPROM has been
+     * setup previously
+     * @param id the id at which @uniqueInt should be saved, defaults to UNIQUE_INT_ID
+     * @return true if reset occurred, false if EZPROM is valid and was not reset
+     */
+    bool setup(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID);
+
+    /**
+     * Checks if the unique int is set to @uniqueInt. EZPROM is considered valid if the
+     * correct @uniqueInt is set, otherwise it is invalid and should be reset prior to
+     * use.
+     * @param uniqueInt the unique integer id used to check whether EZPROM has been
+     * setup previously
+     * @param id the id at which @uniqueInt should be saved, defaults to UNIQUE_INT_ID
+     * @returns true if @uniqueInt matches the saved integer, false otherwise
+     */
+    bool isValid(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID);
+
+    /**
+     * Sets the unique int used for checking if EZPROM has been setup previously.
+     * @param uniqueInt the unique integer id used to check whether EZPROM has been setup previously
+     * @param id the id at which @uniqueInt should be saved, defaults to UNIQUE_INT_ID
+     */
+    void setUniqueId(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID);
 
     /**
      * Stores the id and size of objects stored into EEPROM.
@@ -317,3 +351,6 @@ private:
 extern EZPROM ezprom;
 #endif /* EZPROM_H */
 
+
+//Added by Sloeber 
+#pragma once

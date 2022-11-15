@@ -6,6 +6,28 @@ void EZPROM::reset() {
     EEPROM.put(EEPROM.length() - sizeof (uint8_t), (uint8_t) 0);
 }
 
+bool EZPROM::setup(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID) {
+	if (!isValid(uniqueInt, id)) {
+		reset();
+		setUniqueId(uniqueInt, id);
+		return true;
+	}
+	return false;
+}
+
+bool EZPROM::isValid(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID) {
+	uint16_t curInt = 0;
+	if (ezprom.exists(id)
+			&& ezprom.getObjectData(id).size == sizeof(uint16_t)) {
+		ezprom.load(id, curInt);
+	}
+	return curInt == uniqueInt;
+}
+
+void EZPROM::setUniqueId(uint16_t uniqueInt, uint8_t id = UNIQUE_INT_ID) {
+	ezprom.save(id, uniqueInt);
+}
+
 bool EZPROM::saveSerial(uint8_t id, const Serializable* src) {
     uint16_t size = src->size();
     uint8_t stream[size];
