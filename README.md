@@ -16,12 +16,19 @@ Each saved object can be overwritten in size. For example, if a `char[32]` is sa
 The last byte of EEPROM is used to store the amount of objects currently saved by EZPROM.
 
 ## Examples
-Before you use EZPROM with your program the first time, you must call `reset`. This will format EEPROM so that it can be used by EZPROM. This only needs to be done once. It can also be done every time you need to delete all objects currently managed by EZPROM. Here is an example:
+Before you use EZPROM with your program the first time, you must call `setup`. This will format EEPROM so that it can be used by EZPROM. It will save your unique integer to the ID of `UNIQUE_INT_ID` defined in `EZPROM.h`. Here is an example:
 ```
+#define UNIQUE_INT 123456
+
 void setup() {
-  //only do once, if this is called every setup then
-  //information will be lost between power cycles
-  ezprom.reset();
+  //NOTE: set a unique ID for your EEPROM to ensure it has been
+  //setup prior to first use
+  bool firstUse = ezprom.setup(UNIQUE_INT);
+  if (firstUse) {
+    //do first-time intialization steps here
+  } else {
+    //do loading from EEPROM here
+  }
 }
 ```
 
@@ -80,19 +87,31 @@ void getMessages(char ** dest) {
 
 ## Documentation
 
-1. [void reset()](#void-reset)
-2. [struct ObjectData](#struct-objectdata)
-3. [bool save(uint8_t, T const &, uint16_t)](#bool-saveuint8_t-id-t-const-src-uint16_t-elements--1)
-4. [bool load(uint8_t, T &)](#bool-loaduint8_t-id-t-dest)
-5. [void remove(uint8_t)](#void-removeuint8_t-id)
-6. [void setOverwriteIfSizeDifferent(bool)](#void-setoverwriteifsizedifferentbool-b)
-7. [ObjectData getObjectData(uint8_t)](#objectdata-getobjectdatauint8_t-id)
-8. [uint8_t getObjectAmount()](#uint8_t-getobjectamount)
-9. [uint16_t getAddress(uint8_t)](#uint16_t-getaddressuint8_t-id)
+1. [bool setup(uint16_t)](#bool-setupuint16_t)
+2. [void reset()](#void-reset)
+3. [void setUniqueId(uint16_t)](#void-setuniqueiduint16_t)
+4. [bool isValid(uint16_t)](#bool-isvaliduint16_t)
+5. [struct ObjectData](#struct-objectdata)
+6. [bool save(uint8_t, T const &, uint16_t)](#bool-saveuint8_t-id-t-const-src-uint16_t-elements--1)
+7. [bool load(uint8_t, T &)](#bool-loaduint8_t-id-t-dest)
+8. [void remove(uint8_t)](#void-removeuint8_t-id)
+9. [void setOverwriteIfSizeDifferent(bool)](#void-setoverwriteifsizedifferentbool-b)
+10. [ObjectData getObjectData(uint8_t)](#objectdata-getobjectdatauint8_t-id)
+11. [uint8_t getObjectAmount()](#uint8_t-getobjectamount)
+12. [uint16_t getAddress(uint8_t)](#uint16_t-getaddressuint8_t-id)
+
+### bool setup(uint16_t)
+Functions like `reset`, but checks `isValid` first. If `EEPROM` is not valid, this method will call `reset` and `setUniqueId`. If `EEPROM` is valid, nothing happens. Returns `true` if a reset occured, indicating first-time use of the EEPROM. `false` if nothing was changed.
 
 ### void reset()
 Clears all objects from EZPROM. Data is not actually modified except for the last byte which is set to `0`. The last byte of EEPROM stores the current amount of objects being managed by EZPROM.
 
+### void setUniqueId(uint16_t)
+Sets the unique integer used for checking if EZPROM has been setup previously.
+
+### bool isValid(uint16_t)
+Checks if the unique integer is set to `uniqueInt`. `EZPROM` is considered valid if the unique integer is equal to `uniqueInt`, otherwise it is invalid and should be reset prior to use.
+     
 ### struct ObjectData
 Stores the id and size of objects stored into EEPROM.
 
@@ -154,7 +173,7 @@ Removes the object with the specified ID.
 The ID of the object to be removed.
 
 ### void setOverwriteIfSizeDifferent(bool b)
-Specifies if overwriting the same with an object that is a different size than the original is okay. Although it can be convenient, frequently overwriting the same ID with objects of different sizes can increase the wear on EEPROM as objects behind the one whose size is changing must also be rewritten to EEPROM. This value is `false` by default.
+Specifies if overwriting the same with an object that is a different size than the original is okay. Although it can be convenient, frequently overwriting the same ID with objects of different sizes can increase the wear on EEPROM as objects behind the one whose size is changing must also be rewritten to EEPROM. This value is `true` by default, since version 1.2.0.
 
 #### @param b 
 Whether the previously saved object at a specific ID can be overwritten by a new object with a different size.
